@@ -1,0 +1,875 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>번역 컨트롤 패널</title>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg: #1a1a2e;
+  --surface: #16213e;
+  --surface2: #0f3460;
+  --accent: #4cc9f0;
+  --green: #4ade80;
+  --yellow: #fbbf24;
+  --red: #f87171;
+  --text: #e2e8f0;
+  --text-dim: #94a3b8;
+  --border: #334155;
+  --radius: 8px;
+  --log-height: 300px;
+}
+
+html, body {
+  height: 100%;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-size: 14px;
+  overflow: hidden;
+}
+
+#app {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+}
+
+/* ── Main columns ── */
+#main {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+}
+
+#left-col {
+  width: 55%;
+  display: flex;
+  flex-direction: column;
+  border-right: 1px solid var(--border);
+  overflow: hidden;
+}
+
+#right-col {
+  width: 45%;
+  overflow-y: auto;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* ── Section cards ── */
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 12px;
+}
+
+.card-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--accent);
+  margin-bottom: 10px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* ── Left: translation monitor ── */
+#monitor-header {
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-shrink: 0;
+  background: var(--surface);
+}
+
+#monitor-header h2 {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--accent);
+}
+
+#translation-list {
+  flex: 1;
+  overflow-y: auto;
+  padding: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.translation-entry {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 8px 10px;
+  animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: translateY(0); } }
+
+.t-time { font-size: 11px; color: var(--text-dim); margin-bottom: 4px; }
+.t-korean { font-size: 13px; margin-bottom: 2px; }
+.t-japanese { font-size: 13px; color: #a5f3fc; }
+
+/* ── Buttons ── */
+button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 44px;
+  padding: 0 14px;
+  border: none;
+  border-radius: var(--radius);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s;
+  white-space: nowrap;
+}
+
+.btn-primary { background: #2563eb; color: #fff; }
+.btn-primary:hover { background: #1d4ed8; }
+.btn-danger  { background: #dc2626; color: #fff; }
+.btn-danger:hover { background: #b91c1c; }
+.btn-ghost   { background: var(--surface2); color: var(--text); }
+.btn-ghost:hover { background: #1e4080; }
+.btn-sm { min-height: 36px; padding: 0 10px; font-size: 12px; }
+.btn-icon { min-height: 36px; min-width: 36px; padding: 0 8px; }
+
+/* ── Status dots ── */
+.dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+.dot-green { background: var(--green); box-shadow: 0 0 6px var(--green); }
+.dot-red   { background: var(--red);   box-shadow: 0 0 6px var(--red); }
+.dot-yellow{ background: var(--yellow);box-shadow: 0 0 6px var(--yellow); }
+
+/* ── Connection status ── */
+#viewer-list { display: flex; flex-direction: column; gap: 4px; margin-top: 6px; }
+.viewer-item { display: flex; align-items: center; gap: 8px; font-size: 13px; padding: 4px 0; }
+
+/* ── Controls row ── */
+.controls-row { display: flex; flex-wrap: wrap; gap: 8px; }
+
+/* ── Status badge ── */
+.status-badge {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 4px 10px; border-radius: 20px; font-size: 12px; font-weight: 600;
+  background: var(--surface2);
+}
+
+/* ── QR code ── */
+#qr-img { display: block; border-radius: 6px; background: #fff; padding: 4px; }
+#qr-url { font-size: 11px; color: var(--accent); margin-top: 6px; word-break: break-all; }
+#qr-pin-display { font-size: 12px; color: var(--text-dim); margin-top: 4px; }
+
+/* ── PIN boxes ── */
+#pin-boxes { display: flex; gap: 6px; margin: 8px 0; }
+.pin-box {
+  width: 40px; height: 52px;
+  background: var(--surface2); border: 2px solid var(--border);
+  border-radius: 8px; display: flex; align-items: center; justify-content: center;
+  font-size: 22px; font-weight: 700; color: var(--accent);
+}
+#pin-manual-row { display: flex; gap: 8px; margin-top: 8px; align-items: center; }
+#pin-input {
+  width: 120px; height: 44px; background: var(--surface2); border: 1px solid var(--border);
+  border-radius: var(--radius); color: var(--text); font-size: 18px; text-align: center;
+  letter-spacing: 4px;
+}
+#pin-error { font-size: 12px; color: var(--red); margin-top: 4px; min-height: 16px; }
+#pin-copy-feedback { font-size: 12px; color: var(--green); margin-left: 8px; opacity: 0; transition: opacity 0.3s; }
+
+/* ── Device list ── */
+#device-list {
+  max-height: 150px; overflow-y: auto;
+  border: 1px solid var(--border); border-radius: var(--radius);
+  margin-top: 6px;
+}
+.device-item {
+  display: flex; align-items: center; gap: 6px;
+  padding: 6px 10px; border-bottom: 1px solid var(--border); font-size: 12px;
+  transition: background 0.15s;
+}
+.device-item:last-child { border-bottom: none; }
+.device-item.selected { background: rgba(74, 222, 128, 0.08); border-left: 2px solid var(--green); }
+.device-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.device-type-badge {
+  flex-shrink: 0; font-size: 10px; padding: 2px 6px; border-radius: 10px; font-weight: 600;
+  background: var(--surface2); color: var(--text-dim);
+}
+.device-type-badge.built-in  { background: rgba(74,222,128,0.15); color: var(--green); }
+.device-type-badge.usb       { background: rgba(76,201,240,0.15); color: var(--accent); }
+.device-type-badge.virtual   { background: rgba(251,191,36,0.15); color: var(--yellow); }
+.device-type-badge.bluetooth { background: rgba(167,139,250,0.15); color: #a78bfa; }
+.device-type-badge.external  { background: rgba(248,113,113,0.12); color: var(--red); }
+.device-actions { display: flex; gap: 4px; flex-shrink: 0; }
+.device-test-result {
+  font-size: 11px; padding: 2px 0;
+  display: none;
+}
+.device-test-result.ok  { color: var(--green); }
+.device-test-result.err { color: var(--red); }
+
+/* ── Auto hide buttons ── */
+.autohide-row { display: flex; gap: 6px; flex-wrap: wrap; }
+.autohide-btn { min-height: 36px; padding: 0 12px; font-size: 12px; }
+.autohide-btn.active { background: var(--accent); color: var(--bg); }
+
+/* ── Translation mode buttons ── */
+.mode-row { display: flex; gap: 8px; }
+.mode-btn { min-height: 40px; padding: 0 14px; font-size: 13px; }
+.mode-btn.active { background: var(--accent); color: var(--bg); font-weight: 700; }
+
+/* ── Mini teleprompter in live preview ── */
+#mini-tp-container {
+  min-height: 80px;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  gap: 2px;
+  margin-top: 4px;
+}
+.mini-tp-line {
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--text);
+  transition: opacity 0.3s ease;
+  word-break: break-all;
+}
+.mini-tp-streaming { color: var(--accent); }
+
+/* ── Log bar ── */
+#log-bar {
+  flex-shrink: 0;
+  border-top: 1px solid var(--border);
+  background: var(--surface);
+  transition: height 0.25s ease;
+  height: 36px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+#log-bar.expanded { height: var(--log-height); }
+
+#log-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0 12px; height: 36px; cursor: pointer; flex-shrink: 0;
+  user-select: none;
+}
+
+#log-title { font-size: 12px; color: var(--text-dim); display: flex; align-items: center; gap: 6px; }
+#log-error-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--red); box-shadow: 0 0 6px var(--red); display: none; }
+
+#log-content {
+  flex: 1; overflow-y: auto; padding: 6px 12px;
+  display: flex; flex-direction: column; gap: 3px;
+}
+
+.log-entry {
+  font-size: 11px; font-family: 'Menlo', 'Monaco', monospace;
+  padding: 3px 0; border-bottom: 1px solid rgba(255,255,255,0.04);
+}
+.log-entry:last-child { border-bottom: none; }
+.log-entry .log-time { color: var(--text-dim); margin-right: 6px; }
+.log-entry .log-title-text { font-weight: 600; }
+.log-entry .log-detail { color: var(--text-dim); margin-left: 20px; display: block; }
+.log-entry.green .log-title-text { color: var(--green); }
+.log-entry.yellow .log-title-text { color: var(--yellow); }
+.log-entry.red .log-title-text { color: var(--red); }
+
+/* ── Flash overlay ── */
+#flash {
+  position: fixed; inset: 0;
+  background: rgba(248, 113, 113, 0.3);
+  pointer-events: none; opacity: 0;
+  transition: opacity 0.1s;
+  z-index: 9999;
+}
+
+/* ── Live preview ── */
+#live-preview {
+  background: rgba(76, 201, 240, 0.08);
+  border: 1px solid rgba(76, 201, 240, 0.3);
+  border-radius: var(--radius);
+  padding: 8px 10px;
+  display: none;
+  animation: fadeIn 0.2s ease;
+}
+#live-preview .lp-label {
+  font-size: 10px; color: var(--accent); text-transform: uppercase;
+  letter-spacing: 0.05em; margin-bottom: 4px; display: flex; align-items: center; gap: 5px;
+}
+#live-preview .lp-dot {
+  width: 6px; height: 6px; border-radius: 50%;
+  background: var(--accent); animation: pulse 1s infinite;
+}
+#live-preview .lp-text {
+  font-size: 14px; color: var(--text); line-height: 1.5;
+  white-space: pre-wrap; word-break: break-all;
+}
+@keyframes pulse {
+  0%, 100% { opacity: 1; } 50% { opacity: 0.3; }
+}
+
+/* ── Scrollbars ── */
+::-webkit-scrollbar { width: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+</style>
+</head>
+<body>
+<div id="flash"></div>
+<div id="app">
+  <!-- Main area -->
+  <div id="main">
+    <!-- Left column: Translation monitor -->
+    <div id="left-col">
+      <div id="monitor-header">
+        <h2>📺 번역 모니터</h2>
+        <button class="btn-ghost btn-sm" onclick="clearTranslations()">🗑️ 지우기</button>
+      </div>
+      <div id="live-preview-wrap" style="padding:6px 8px 0;">
+        <div id="live-preview">
+          <div class="lp-label"><span class="lp-dot"></span> 번역기 화면 미리보기</div>
+          <div id="mini-tp-container"></div>
+        </div>
+      </div>
+      <div id="translation-list"></div>
+    </div>
+
+    <!-- Right column -->
+    <div id="right-col">
+
+      <!-- 연결 상태 -->
+      <div class="card">
+        <div class="card-title">🔌 연결 상태</div>
+        <div>접속자: <span id="viewer-count">0</span>명 <span class="dot dot-green" id="connect-dot"></span></div>
+        <div id="viewer-list"></div>
+      </div>
+
+      <!-- 번역 컨트롤 -->
+      <div class="card">
+        <div class="card-title">🎤 번역 컨트롤</div>
+        <div class="controls-row" style="margin-bottom:10px;">
+          <button class="btn-primary" id="btn-start" onclick="startTranslation()">▶ 번역 시작</button>
+          <button class="btn-danger"  id="btn-stop"  onclick="stopTranslation()" disabled>⏹ 번역 중지</button>
+        </div>
+        <div class="controls-row" style="margin-bottom:10px;">
+          <button class="btn-ghost" id="btn-show" onclick="showSubtitle()">📢 자막 보이기</button>
+          <button class="btn-ghost" id="btn-hide" onclick="hideSubtitle()">🔇 자막 숨기기</button>
+        </div>
+        <div id="translation-status" class="status-badge">
+          <span class="dot dot-red" id="status-dot"></span>
+          <span id="status-text">중지됨</span>
+        </div>
+      </div>
+
+      <!-- QR 코드 -->
+      <div class="card">
+        <div class="card-title">📱 QR 코드</div>
+        <img id="qr-img" width="200" height="200" alt="QR Code">
+        <div id="qr-url">URL 생성 중...</div>
+        <div id="qr-pin-display"></div>
+        <div style="margin-top:8px;">
+          <button class="btn-ghost btn-sm" onclick="refreshQR()">🔄 QR 새로고침</button>
+        </div>
+      </div>
+
+      <!-- PIN 관리 -->
+      <div class="card">
+        <div class="card-title">🔐 접속 PIN 관리</div>
+        <div id="pin-boxes"></div>
+        <div class="controls-row" style="margin-top:8px;">
+          <button class="btn-ghost btn-sm" onclick="regeneratePIN()">🔄 PIN 재생성</button>
+          <button class="btn-ghost btn-sm" onclick="copyPIN()">📋 복사</button>
+          <span id="pin-copy-feedback">복사됨!</span>
+        </div>
+        <div id="pin-manual-row">
+          <input type="text" id="pin-input" maxlength="6" placeholder="새 PIN" inputmode="numeric" pattern="[0-9]*">
+          <button class="btn-ghost btn-sm" onclick="savePIN()">✅ 저장</button>
+        </div>
+        <div id="pin-error"></div>
+      </div>
+
+      <!-- 오디오 입력 -->
+      <div class="card">
+        <div class="card-title">🎙️ 오디오 입력 설정</div>
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
+          <span id="selected-device-label" style="font-size:12px;color:var(--text-dim)">장치 선택 안 됨</span>
+          <button class="btn-ghost btn-sm" onclick="refreshDevices()">🔄 새로고침</button>
+        </div>
+        <div id="device-list"><div style="padding:10px;color:var(--text-dim)">장치 검색 중...</div></div>
+      </div>
+
+      <!-- 번역 설정 -->
+      <div class="card">
+        <div class="card-title">⚙️ 번역 설정</div>
+        <div style="font-size:12px;margin-bottom:6px;color:var(--text-dim)">번역 모드:</div>
+        <div class="mode-row" style="margin-bottom:12px;flex-wrap:wrap;">
+          <button id="btn-mode-superfast" class="btn-ghost mode-btn" onclick="setTranslationMode('superfast')">🚀 초고속</button>
+          <button id="btn-mode-quick"     class="btn-ghost mode-btn" onclick="setTranslationMode('quick')">⚡ 빠른 번역</button>
+          <button id="btn-mode-precise"   class="btn-ghost mode-btn active" onclick="setTranslationMode('precise')">🎯 정확한 번역</button>
+        </div>
+        <div style="font-size:12px;margin-bottom:8px;color:var(--text-dim)">음성 없을 때 자동 숨기기:</div>
+        <div class="autohide-row">
+          <button class="autohide-btn btn-ghost" data-delay="2000" onclick="setAutoHide(2000)">2초</button>
+          <button class="autohide-btn btn-ghost active" data-delay="5000" onclick="setAutoHide(5000)">5초</button>
+          <button class="autohide-btn btn-ghost" data-delay="10000" onclick="setAutoHide(10000)">10초</button>
+          <button class="autohide-btn btn-ghost" data-delay="0" onclick="setAutoHide(0)">끄기</button>
+        </div>
+      </div>
+
+    </div><!-- /right-col -->
+  </div><!-- /main -->
+
+  <!-- Log bar -->
+  <div id="log-bar">
+    <div id="log-header" onclick="toggleLog()">
+      <div id="log-title">
+        📋 시스템 로그
+        <span style="color:var(--border)">━━━━━━━━━━━━━━━</span>
+        <span id="log-error-dot"></span>
+      </div>
+      <button class="btn-ghost btn-sm" id="log-toggle-btn" onclick="event.stopPropagation();toggleLog()">펼치기</button>
+      <button class="btn-ghost btn-sm" onclick="event.stopPropagation();clearLogs()">🗑️ 로그 지우기</button>
+    </div>
+    <div id="log-content"></div>
+  </div>
+</div>
+
+<script>
+// ── State ─────────────────────────────────────────────────────────────────────
+let state = {
+  pin: '------',
+  publicURL: null,
+  translationActive: false,
+  subtitleVisible: true,
+  autoHideDelay: 5000,
+  translationMode: 'precise',
+  viewers: []
+};
+
+let logExpanded = false;
+let hasUnreadError = false;
+let monitorAutoScroll = true;
+
+// Mini-teleprompter tracking for live preview
+let miniLines = [];
+let miniStreamingText = '';
+
+const translationList = document.getElementById('translation-list');
+const logContent = document.getElementById('log-content');
+
+// ── SSE ───────────────────────────────────────────────────────────────────────
+function connectSSE() {
+  const es = new EventSource('/events?type=control');
+  es.onmessage = (e) => {
+    const { type, ...data } = JSON.parse(e.data);
+    handleEvent(type, data);
+  };
+  es.onerror = () => setTimeout(connectSSE, 3000);
+}
+
+function handleEvent(type, data) {
+  switch (type) {
+    case 'init':
+      state = { ...state, ...data };
+      renderAll();
+      break;
+    case 'log':
+      appendLog(data);
+      break;
+    case 'subtitle-update':
+      if (data.state === 'streaming' && data.text) {
+        miniStreamingText = data.text;
+        updateMiniTeleprompter();
+      }
+      break;
+    case 'translation':
+      miniStreamingText = '';
+      if (data.japanese) {
+        miniLines.push(data.japanese);
+        if (miniLines.length > 20) miniLines.shift();
+      }
+      updateMiniTeleprompter();
+      prependTranslation(data);
+      break;
+    case 'translations_cleared':
+      translationList.innerHTML = '';
+      miniLines = [];
+      miniStreamingText = '';
+      updateMiniTeleprompter();
+      break;
+    case 'logs_cleared':
+      logContent.innerHTML = '';
+      break;
+    case 'ngrok':
+      state.publicURL = data.url;
+      refreshQR();
+      break;
+    case 'pin':
+      state.pin = data.pin;
+      renderPIN();
+      renderQRPinDisplay();
+      break;
+    case 'status':
+      Object.assign(state, data);
+      renderStatus();
+      if ('translationMode' in data) renderTranslationMode();
+      if ('selectedAudioDevice' in data) loadDevices();
+      break;
+    case 'viewers':
+      state.viewers = data.items || [];
+      renderViewers();
+      break;
+  }
+}
+
+// ── Render ────────────────────────────────────────────────────────────────────
+function renderAll() {
+  renderPIN();
+  renderStatus();
+  renderViewers();
+  renderAutoHide();
+  renderTranslationMode();
+  refreshQR();
+  loadDevices();
+
+  // populate translations
+  if (state.translations) {
+    translationList.innerHTML = '';
+    state.translations.forEach(t => prependTranslation(t, false));
+  }
+  // populate logs
+  if (state.logs) {
+    logContent.innerHTML = '';
+    [...state.logs].reverse().forEach(l => appendLog(l, false));
+  }
+}
+
+function renderPIN() {
+  const boxes = document.getElementById('pin-boxes');
+  boxes.innerHTML = state.pin.split('').map(d =>
+    `<div class="pin-box">${d}</div>`).join('');
+  renderQRPinDisplay();
+}
+
+function renderQRPinDisplay() {
+  document.getElementById('qr-pin-display').textContent = `PIN: ${state.pin.split('').join(' ')}`;
+}
+
+function renderStatus() {
+  const active = state.translationActive;
+  document.getElementById('btn-start').disabled = active;
+  document.getElementById('btn-stop').disabled = !active;
+  document.getElementById('status-dot').className = `dot ${active ? 'dot-green' : 'dot-red'}`;
+  document.getElementById('status-text').textContent = active ? '번역 중' : '중지됨';
+  renderAutoHide();
+  renderTranslationMode();
+}
+
+function renderTranslationMode() {
+  const m = state.translationMode;
+  document.getElementById('btn-mode-superfast').classList.toggle('active', m === 'superfast');
+  document.getElementById('btn-mode-quick').classList.toggle('active', m === 'quick');
+  document.getElementById('btn-mode-precise').classList.toggle('active', m === 'precise');
+}
+
+function renderViewers() {
+  const list = state.viewers || [];
+  document.getElementById('viewer-count').textContent = list.length;
+  const el = document.getElementById('viewer-list');
+  el.innerHTML = list.map(v =>
+    `<div class="viewer-item">
+      <span class="dot ${v.connected ? 'dot-green' : 'dot-red'}"></span>
+      📱 기기 ${v.id} <span style="color:${v.connected ? 'var(--green)' : 'var(--red)'}; font-size:11px;">${v.connected ? '🟢 연결됨' : '🔴 끊김'}</span>
+    </div>`).join('');
+}
+
+function renderAutoHide() {
+  document.querySelectorAll('.autohide-btn').forEach(btn => {
+    const d = parseInt(btn.dataset.delay);
+    btn.classList.toggle('active', d === state.autoHideDelay);
+  });
+}
+
+// ── Translation list ──────────────────────────────────────────────────────────
+translationList.addEventListener('scroll', () => {
+  monitorAutoScroll = translationList.scrollTop <= 10;
+});
+
+function prependTranslation(t, animate = true) {
+  const el = document.createElement('div');
+  el.className = 'translation-entry' + (animate ? '' : '');
+  el.innerHTML = `
+    <div class="t-time">${t.timestamp}</div>
+    <div class="t-korean">🇰🇷 ${escHtml(t.korean)}</div>
+    <div class="t-japanese">🇯🇵 ${escHtml(t.japanese)}</div>`;
+
+  translationList.prepend(el);
+
+  // Trim to 100
+  while (translationList.children.length > 100) {
+    translationList.removeChild(translationList.lastChild);
+  }
+
+  if (monitorAutoScroll) translationList.scrollTop = 0;
+}
+
+function clearTranslations() {
+  fetch('/api/translations/clear', { method: 'POST' });
+}
+
+function updateMiniTeleprompter() {
+  const previewEl   = document.getElementById('live-preview');
+  const containerEl = document.getElementById('mini-tp-container');
+  if (!containerEl) return;
+
+  const hasContent = miniLines.length > 0 || miniStreamingText;
+  previewEl.style.display = hasContent ? 'block' : 'none';
+
+  const recentLines = miniLines.slice(-3);
+  const allItems = [
+    ...recentLines.map(t => ({ text: t, streaming: false })),
+    ...(miniStreamingText ? [{ text: miniStreamingText, streaming: true }] : [])
+  ];
+
+  const opacities = [1.0, 0.7, 0.5, 0.3];
+  containerEl.innerHTML = allItems.map((item, i, arr) => {
+    const fromEnd = arr.length - i;
+    const opacity = opacities[fromEnd - 1] ?? 0.1;
+    const cls = item.streaming ? 'mini-tp-line mini-tp-streaming' : 'mini-tp-line';
+    return `<div class="${cls}" style="opacity:${opacity}">${escHtml(item.text)}</div>`;
+  }).join('');
+}
+
+// ── Log ───────────────────────────────────────────────────────────────────────
+function appendLog(entry, scroll = true) {
+  const el = document.createElement('div');
+  el.className = `log-entry ${entry.level}`;
+  el.innerHTML = `
+    <span class="log-time">${entry.time}</span>
+    <span class="log-title-text">${escHtml(entry.title)}</span>
+    ${entry.detail ? `<span class="log-detail">${escHtml(entry.detail)}</span>` : ''}`;
+
+  logContent.appendChild(el);
+  if (scroll) logContent.scrollTop = logContent.scrollHeight;
+
+  // Trim
+  while (logContent.children.length > 100) logContent.removeChild(logContent.firstChild);
+
+  if (entry.level === 'red') {
+    if (!logExpanded) {
+      hasUnreadError = true;
+      document.getElementById('log-error-dot').style.display = 'inline-block';
+    }
+    flashRed();
+    if (!logExpanded) expandLog();
+  }
+}
+
+function toggleLog() {
+  if (logExpanded) collapseLog(); else expandLog();
+}
+
+function expandLog() {
+  logExpanded = true;
+  document.getElementById('log-bar').classList.add('expanded');
+  document.getElementById('log-toggle-btn').textContent = '접기';
+  hasUnreadError = false;
+  document.getElementById('log-error-dot').style.display = 'none';
+  logContent.scrollTop = logContent.scrollHeight;
+}
+
+function collapseLog() {
+  logExpanded = false;
+  document.getElementById('log-bar').classList.remove('expanded');
+  document.getElementById('log-toggle-btn').textContent = '펼치기';
+}
+
+function clearLogs() {
+  fetch('/api/logs/clear', { method: 'POST' });
+}
+
+function flashRed() {
+  const f = document.getElementById('flash');
+  f.style.opacity = '1';
+  setTimeout(() => f.style.opacity = '0', 300);
+}
+
+// ── QR ────────────────────────────────────────────────────────────────────────
+async function refreshQR() {
+  const res = await fetch('/api/qr');
+  const data = await res.json();
+  document.getElementById('qr-img').src = data.qr;
+  document.getElementById('qr-url').textContent = data.url;
+  renderQRPinDisplay();
+}
+
+// ── PIN ───────────────────────────────────────────────────────────────────────
+async function regeneratePIN() {
+  const res = await fetch('/api/pin/regenerate', { method: 'POST' });
+  const data = await res.json();
+  state.pin = data.pin;
+  renderPIN();
+}
+
+function copyPIN() {
+  navigator.clipboard.writeText(state.pin);
+  const fb = document.getElementById('pin-copy-feedback');
+  fb.style.opacity = '1';
+  setTimeout(() => fb.style.opacity = '0', 2000);
+}
+
+async function savePIN() {
+  const val = document.getElementById('pin-input').value.trim();
+  const errEl = document.getElementById('pin-error');
+  if (!/^\d{6}$/.test(val)) {
+    errEl.textContent = '6자리 숫자를 입력해주세요';
+    return;
+  }
+  errEl.textContent = '';
+  const res = await fetch('/api/pin/set', {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ pin: val })
+  });
+  if (res.ok) {
+    document.getElementById('pin-input').value = '';
+  }
+}
+
+document.getElementById('pin-input').addEventListener('input', function() {
+  this.value = this.value.replace(/\D/g, '').slice(0, 6);
+});
+
+// ── Devices ───────────────────────────────────────────────────────────────────
+async function loadDevices() {
+  const el = document.getElementById('device-list');
+  el.innerHTML = '<div style="padding:10px;color:var(--text-dim)">장치 검색 중...</div>';
+  const res = await fetch('/api/devices');
+  const { devices, selected } = await res.json();
+
+  if (!devices.length) {
+    el.innerHTML = '<div style="padding:10px;color:var(--text-dim)">장치 없음 (sox 설치 확인: brew install sox)</div>';
+    return;
+  }
+
+  // Update selected device label
+  const selLabel = document.getElementById('selected-device-label');
+  if (selected) {
+    const selDev = devices.find(d => d.name === selected);
+    selLabel.textContent = `✅ ${selected}` + (selDev ? ` (${selDev.type})` : '');
+    selLabel.style.color = 'var(--green)';
+  } else {
+    selLabel.textContent = '장치 선택 안 됨';
+    selLabel.style.color = 'var(--text-dim)';
+  }
+
+  el.innerHTML = devices.map(d => {
+    const isSelected = d.name === selected;
+    const typeCls = d.type.toLowerCase().replace(/[^a-z]/g, '-');
+    return `
+    <div class="device-item ${isSelected ? 'selected' : ''}" id="dev-${d.id}">
+      <span class="device-name" title="${escHtml(d.name)}">${escHtml(d.name)}</span>
+      <span class="device-type-badge ${typeCls}">${escHtml(d.type)}</span>
+      ${isSelected ? '<span style="color:var(--green);font-size:11px;flex-shrink:0">✅</span>' : ''}
+      <div class="device-actions">
+        <button class="btn-ghost btn-sm" onclick="testDevice('${escAttr(d.name)}', ${d.id})" title="테스트">🎤 테스트</button>
+        <button class="btn-ghost btn-sm ${isSelected ? '' : 'btn-primary'}" onclick="selectDevice('${escAttr(d.name)}')">${isSelected ? '선택됨' : '선택'}</button>
+      </div>
+    </div>
+    <div class="device-test-result" id="test-result-${d.id}"></div>`;
+  }).join('');
+}
+
+function refreshDevices() { loadDevices(); }
+
+async function selectDevice(name) {
+  await fetch('/api/devices/select', {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ device: name })
+  });
+  state.selectedAudioDevice = name;
+  loadDevices();
+}
+
+async function testDevice(name, id) {
+  const resultEl = document.getElementById(`test-result-${id}`);
+  resultEl.className = 'device-test-result';
+  resultEl.style.display = 'block';
+  resultEl.textContent = '⏳ 테스트 중... (1.5초)';
+
+  // Disable the test button while testing
+  const btn = resultEl.previousElementSibling?.querySelector('button[onclick*="testDevice"]');
+
+  const res = await fetch('/api/devices/test', {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ device: name })
+  });
+  const { ok, detail } = await res.json();
+
+  resultEl.className = `device-test-result ${ok ? 'ok' : 'err'}`;
+  resultEl.textContent = ok
+    ? `🟢 테스트 성공`
+    : `🔴 테스트 실패${detail ? ': ' + detail.slice(0, 60) : ''}`;
+
+  // Auto-hide after 5s
+  setTimeout(() => { resultEl.style.display = 'none'; }, 5000);
+}
+
+// ── Translation mode ──────────────────────────────────────────────────────────
+async function setTranslationMode(mode) {
+  state.translationMode = mode;
+  renderTranslationMode();
+  await fetch('/api/translation-mode', {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ mode })
+  });
+}
+
+// ── Auto hide ─────────────────────────────────────────────────────────────────
+async function setAutoHide(delay) {
+  state.autoHideDelay = delay;
+  renderAutoHide();
+  await fetch('/api/autohide', {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ delay })
+  });
+}
+
+// ── Translation controls ──────────────────────────────────────────────────────
+function startTranslation() {
+  fetch('/api/translation/start', { method: 'POST' });
+}
+function stopTranslation() {
+  fetch('/api/translation/stop', { method: 'POST' });
+}
+function showSubtitle() {
+  fetch('/api/subtitle/show', { method: 'POST' });
+}
+function hideSubtitle() {
+  fetch('/api/subtitle/hide', { method: 'POST' });
+}
+
+// ── Utils ─────────────────────────────────────────────────────────────────────
+function escHtml(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+function escAttr(s) {
+  return String(s).replace(/'/g, "\\'").replace(/"/g, '&quot;');
+}
+
+// ── Boot ──────────────────────────────────────────────────────────────────────
+connectSSE();
+</script>
+</body>
+</html>

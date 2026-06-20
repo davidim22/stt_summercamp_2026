@@ -1,0 +1,494 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>⛪ 日本語翻訳</title>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg: #1a1a2e;
+  --surface: #16213e;
+  --accent: #4cc9f0;
+  --green: #4ade80;
+  --yellow: #fbbf24;
+  --red: #f87171;
+  --text: #e2e8f0;
+  --text-dim: #94a3b8;
+  --border: #334155;
+  --radius: 10px;
+  --font-size: 24px;
+}
+
+html, body {
+  height: 100%;
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Hiragino Sans', 'Hiragino Kaku Gothic ProN', 'Yu Gothic', -apple-system, sans-serif;
+  overflow: hidden;
+}
+
+/* ── PIN screen ── */
+#pin-screen {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  height: 100vh; padding: 20px; gap: 20px;
+}
+
+#pin-screen h1 { font-size: 28px; font-weight: 700; }
+#pin-screen p { font-size: 15px; color: var(--text-dim); }
+
+#pin-boxes {
+  display: flex; gap: 8px; margin: 4px 0;
+}
+
+.pin-box {
+  width: 44px; height: 56px;
+  background: var(--surface); border: 2px solid var(--border);
+  border-radius: 10px; display: flex; align-items: center; justify-content: center;
+  font-size: 24px; font-weight: 700; color: var(--accent);
+  transition: border-color 0.15s;
+}
+.pin-box.filled { border-color: var(--accent); }
+
+#pin-hidden-input {
+  position: absolute; opacity: 0; pointer-events: none;
+  width: 1px; height: 1px;
+}
+
+#pin-submit {
+  width: 200px; height: 52px;
+  background: #2563eb; color: #fff;
+  border: none; border-radius: var(--radius);
+  font-size: 16px; font-weight: 600; cursor: pointer;
+  transition: background 0.15s;
+}
+#pin-submit:hover { background: #1d4ed8; }
+
+#pin-error {
+  font-size: 13px; color: var(--red);
+  min-height: 20px; text-align: center;
+}
+
+#tap-hint { font-size: 12px; color: var(--text-dim); }
+
+/* ── Viewer screen ── */
+#viewer-screen {
+  display: none; flex-direction: column;
+  height: 100vh;
+}
+
+#viewer-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 10px 16px;
+  border-bottom: 1px solid var(--border);
+  background: var(--surface);
+  flex-shrink: 0;
+}
+
+#viewer-header h1 { font-size: 16px; font-weight: 700; }
+
+#conn-status {
+  font-size: 12px; display: flex; align-items: center; gap: 6px;
+}
+
+/* ── Teleprompter subtitle area ── */
+#subtitle-area {
+  flex: 1;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+}
+
+#teleprompter-container {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px 20px;
+  display: flex;
+  flex-direction: column;
+  scroll-behavior: smooth;
+  transition: opacity 0.4s ease;
+}
+
+/* top fade mask */
+#teleprompter-container::before {
+  content: '';
+  position: sticky;
+  top: 0;
+  left: 0; right: 0;
+  height: 60px;
+  background: linear-gradient(to bottom, var(--bg), transparent);
+  pointer-events: none;
+  flex-shrink: 0;
+  z-index: 1;
+  margin-bottom: -60px;
+}
+
+.teleprompter-line {
+  font-size: var(--font-size);
+  line-height: 1.4;
+  font-weight: 600;
+  padding: 3px 0;
+  transition: opacity 0.3s ease;
+  word-break: break-all;
+}
+
+#streaming-line {
+  color: var(--accent);
+  min-height: 1.4em;
+}
+
+/* ── Footer ── */
+#viewer-footer {
+  padding: 10px 16px;
+  border-top: 1px solid var(--border);
+  background: var(--surface);
+  display: flex; align-items: center; justify-content: space-between;
+  flex-shrink: 0;
+}
+
+.font-controls { display: flex; gap: 8px; align-items: center; }
+.font-btn {
+  width: 40px; height: 40px; border-radius: 8px;
+  background: var(--bg); border: 1px solid var(--border);
+  color: var(--text); font-weight: 700; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 14px; transition: background 0.15s;
+}
+.font-btn:hover { background: var(--border); }
+
+#footer-status { font-size: 12px; color: var(--text-dim); display: flex; align-items: center; gap: 6px; }
+.dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; }
+.dot-green  { background: #4ade80; box-shadow: 0 0 6px #4ade80; }
+.dot-yellow { background: #fbbf24; box-shadow: 0 0 6px #fbbf24; }
+.dot-red    { background: #f87171; box-shadow: 0 0 6px #f87171; }
+
+
+::-webkit-scrollbar { width: 4px; }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+</style>
+</head>
+<body>
+
+<!-- PIN Entry -->
+<div id="pin-screen">
+  <h1>⛪ 日本語翻訳</h1>
+  <p>PIN을 입력하세요</p>
+  <div id="pin-boxes">
+    <div class="pin-box" id="pb0"></div>
+    <div class="pin-box" id="pb1"></div>
+    <div class="pin-box" id="pb2"></div>
+    <div class="pin-box" id="pb3"></div>
+    <div class="pin-box" id="pb4"></div>
+    <div class="pin-box" id="pb5"></div>
+  </div>
+  <input type="tel" id="pin-hidden-input" maxlength="6" inputmode="numeric" pattern="[0-9]*" autocomplete="one-time-code">
+  <div id="pin-error"></div>
+  <button id="pin-submit" onclick="submitPIN()">확인</button>
+  <div id="tap-hint">PIN 박스를 탭하면 키보드가 나타납니다</div>
+</div>
+
+<!-- Viewer -->
+<div id="viewer-screen">
+  <div id="viewer-header">
+    <h1>⛪ 日本語翻訳</h1>
+    <div id="conn-status">
+      <span class="dot dot-green" id="hdr-dot"></span>
+      <span id="hdr-status-text">연결됨</span>
+    </div>
+  </div>
+
+  <div id="subtitle-area">
+    <div id="teleprompter-container">
+      <div id="tp-spacer" style="flex:1;min-height:0;"></div>
+      <div id="streaming-line" class="teleprompter-line"></div>
+    </div>
+  </div>
+
+  <div id="viewer-footer">
+    <div class="font-controls">
+      <button class="font-btn" onclick="changeFontSize(-4)">A-</button>
+      <button class="font-btn" onclick="changeFontSize(0)">A</button>
+      <button class="font-btn" onclick="changeFontSize(+4)">A+</button>
+      <button class="font-btn" onclick="clearTeleprompter()" title="전체 지우기" style="font-size:16px;">🗑️</button>
+    </div>
+    <div style="display:flex;align-items:center;gap:12px;">
+      <div id="live-indicator" style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--text-dim);">
+        <span class="dot dot-green" id="live-dot"></span>
+        <span id="live-label">라이브</span>
+      </div>
+      <div id="footer-status">
+        <span class="dot dot-green" id="ft-dot"></span>
+        <span id="ft-status">연결됨</span>
+      </div>
+    </div>
+  </div>
+  <div id="sse-debug-bar" style="font-size:11px;color:var(--text-dim);padding:4px 16px;border-top:1px solid var(--border);background:var(--surface);text-align:center;flex-shrink:0;">
+    SSE 상태: <span id="sse-status">대기 중</span> | 마지막 수신: <span id="sse-last">-</span> | 총 수신: <span id="sse-count">0</span>개
+  </div>
+</div>
+
+<script>
+// ── State ─────────────────────────────────────────────────────────────────────
+let verifiedPIN   = sessionStorage.getItem('churchPin') || null;
+let es            = null;
+let fontSize      = parseInt(localStorage.getItem('viewer_font_size') || '24');
+let sseCount      = 0;
+
+const teleprompterContainer = document.getElementById('teleprompter-container');
+const streamingLine         = document.getElementById('streaming-line');
+
+// Teleprompter state
+let tpLines      = []; // permanent line elements
+let userScrolled = false;
+
+// ── PIN screen ────────────────────────────────────────────────────────────────
+const pinInput = document.getElementById('pin-hidden-input');
+const pinBoxes = Array.from({ length: 6 }, (_, i) => document.getElementById(`pb${i}`));
+
+document.getElementById('pin-boxes').addEventListener('click', () => pinInput.focus());
+
+pinInput.addEventListener('input', () => {
+  const val = pinInput.value.replace(/\D/g, '').slice(0, 6);
+  pinInput.value = val;
+  pinBoxes.forEach((box, i) => {
+    box.textContent = val[i] ? '•' : '';
+    box.classList.toggle('filled', !!val[i]);
+  });
+  if (val.length === 6) submitPIN();
+});
+
+pinInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') submitPIN(); });
+
+async function submitPIN() {
+  const pin = pinInput.value.replace(/\D/g, '');
+  if (pin.length !== 6) return;
+  const r = await fetch('/api/verify-pin', {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ pin })
+  });
+  if (r.ok) {
+    verifiedPIN = pin;
+    sessionStorage.setItem('churchPin', pin);
+    showViewerScreen();
+    connectSSE();
+  } else {
+    document.getElementById('pin-error').textContent = '잘못된 PIN입니다 ❌';
+    pinInput.value = '';
+    pinBoxes.forEach(b => { b.textContent = ''; b.classList.remove('filled'); });
+    pinInput.focus();
+    setTimeout(() => document.getElementById('pin-error').textContent = '', 3000);
+  }
+}
+
+function showPINScreen() {
+  document.getElementById('pin-screen').style.display = 'flex';
+  document.getElementById('viewer-screen').style.display = 'none';
+  pinInput.value = '';
+  pinBoxes.forEach(b => { b.textContent = ''; b.classList.remove('filled'); });
+  if (es) { es.close(); es = null; }
+}
+
+function showViewerScreen() {
+  document.getElementById('pin-screen').style.display = 'none';
+  document.getElementById('viewer-screen').style.display = 'flex';
+  applyFontSize();
+}
+
+// ── SSE connection ────────────────────────────────────────────────────────────
+function updateConnectionStatus(status) {
+  const colorMap = { connected: 'green', reconnecting: 'yellow', error: 'red' };
+  const textMap  = { connected: '연결됨', reconnecting: '재연결 중...', error: '연결 끊김' };
+  setConnStatus(colorMap[status] || 'yellow', textMap[status] || status);
+  const sseEl = document.getElementById('sse-status');
+  if (sseEl) sseEl.textContent =
+    status === 'connected'    ? '🟢 연결됨' :
+    status === 'reconnecting' ? '🟡 재연결 중...' : '🔴 연결 끊김';
+}
+
+function connectSSE() {
+  if (!verifiedPIN) return;
+  if (es) { es.close(); es = null; }
+
+  es = new EventSource(`/events?type=viewer&pin=${verifiedPIN}`);
+
+  es.onopen = () => {
+    console.log('SSE connected successfully, PIN:', verifiedPIN);
+    updateConnectionStatus('connected');
+  };
+
+  es.onmessage = (e) => {
+    const data = JSON.parse(e.data);
+    console.log('SSE message:', data.type, data);
+    sseCount++;
+    const lastEl  = document.getElementById('sse-last');
+    const countEl = document.getElementById('sse-count');
+    if (lastEl)  lastEl.textContent  = new Date().toLocaleTimeString('ko-KR', { hour12: false });
+    if (countEl) countEl.textContent = sseCount;
+
+    switch (data.type) {
+      case 'init':
+        setLiveIndicator(data.subtitleVisible !== false);
+        break;
+
+      case 'history':
+        tpLines.forEach(el => el.remove());
+        tpLines = [];
+        (data.items || []).slice().reverse().forEach(text => addCompletedLine(text));
+        teleprompterContainer.scrollTop = teleprompterContainer.scrollHeight;
+        break;
+
+      case 'subtitle-update':
+        if (data.text) {
+          updateStreamingLine(data.text);
+          setLiveIndicator(true);
+        }
+        break;
+
+      case 'subtitle-hide':
+        setLiveIndicator(false);
+        break;
+
+      case 'subtitle-show':
+        setLiveIndicator(true);
+        break;
+
+      case 'visibility':
+        setLiveIndicator(data.visible);
+        break;
+
+      case 'translation':
+        if (data.japanese) {
+          addCompletedLine(data.japanese);
+          clearStreamingLine();
+          setLiveIndicator(true);
+        }
+        break;
+
+      case 'pin_changed':
+      case 'pin_error':
+        sessionStorage.removeItem('churchPin');
+        verifiedPIN = null;
+        if (es) { es.close(); es = null; }
+        window.location.href = '/viewer';
+        break;
+    }
+  };
+
+  es.onerror = (e) => {
+    console.log('SSE error event:', e, 'readyState:', es ? es.readyState : 'null');
+    updateConnectionStatus('reconnecting');
+    es.close();
+    es = null;
+    setTimeout(() => { if (verifiedPIN) connectSSE(); }, 3000);
+  };
+}
+
+// ── Teleprompter ──────────────────────────────────────────────────────────────
+teleprompterContainer.addEventListener('scroll', () => {
+  const distFromBottom = teleprompterContainer.scrollHeight
+    - teleprompterContainer.scrollTop
+    - teleprompterContainer.clientHeight;
+  userScrolled = distFromBottom > 60;
+});
+
+function addCompletedLine(text) {
+  if (!text) return;
+
+  const line = document.createElement('div');
+  line.className = 'teleprompter-line';
+  line.textContent = text;
+  // Insert before streaming-line so it stays last
+  teleprompterContainer.insertBefore(line, streamingLine);
+  tpLines.push(line);
+
+  // Keep last 50 completed lines
+  while (tpLines.length > 50) {
+    tpLines.shift().remove();
+  }
+
+  updateLineOpacities();
+  scrollToBottom();
+}
+
+function updateStreamingLine(text) {
+  streamingLine.textContent = text;
+  scrollToBottom();
+}
+
+function clearStreamingLine() {
+  streamingLine.textContent = '';
+}
+
+function updateLineOpacities() {
+  const total = tpLines.length;
+  tpLines.forEach((line, i) => {
+    const fromEnd = total - i;
+    if (fromEnd === 1)      line.style.opacity = '1.0';
+    else if (fromEnd === 2) line.style.opacity = '0.7';
+    else if (fromEnd === 3) line.style.opacity = '0.5';
+    else if (fromEnd === 4) line.style.opacity = '0.3';
+    else                    line.style.opacity = '0.1';
+  });
+}
+
+function scrollToBottom() {
+  if (!userScrolled) {
+    teleprompterContainer.scrollTo({
+      top: teleprompterContainer.scrollHeight,
+      behavior: 'smooth'
+    });
+  }
+}
+
+// ── Live indicator (replaces hide/show teleprompter) ─────────────────────────
+function setLiveIndicator(active) {
+  const dot   = document.getElementById('live-dot');
+  const label = document.getElementById('live-label');
+  if (!dot) return;
+  dot.className   = active ? 'dot dot-green' : 'dot';
+  dot.style.background = active ? '' : 'var(--text-dim)';
+  dot.style.boxShadow  = active ? '' : 'none';
+  label.textContent    = active ? '라이브' : '일시정지';
+  label.style.color    = active ? 'var(--green)' : 'var(--text-dim)';
+}
+
+function clearTeleprompter() {
+  tpLines.forEach(el => el.remove());
+  tpLines = [];
+  clearStreamingLine();
+}
+
+// ── Font size ─────────────────────────────────────────────────────────────────
+function changeFontSize(delta) {
+  if (delta === 0) { fontSize = 24; }
+  else { fontSize = Math.min(48, Math.max(16, fontSize + delta)); }
+  localStorage.setItem('viewer_font_size', fontSize);
+  applyFontSize();
+}
+
+function applyFontSize() {
+  document.documentElement.style.setProperty('--font-size', fontSize + 'px');
+}
+
+// ── Connection status ─────────────────────────────────────────────────────────
+function setConnStatus(color, text) {
+  ['hdr-dot', 'ft-dot'].forEach(id => {
+    document.getElementById(id).className = `dot dot-${color}`;
+  });
+  document.getElementById('hdr-status-text').textContent = text;
+  document.getElementById('ft-status').textContent = text;
+}
+
+// ── Boot ──────────────────────────────────────────────────────────────────────
+applyFontSize();
+if (verifiedPIN) {
+  showViewerScreen();
+  connectSSE();
+} else {
+  document.getElementById('pin-screen').style.display = 'flex';
+}
+</script>
+</body>
+</html>
