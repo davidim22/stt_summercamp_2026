@@ -36,7 +36,7 @@ A system that translates Korean sermons into Japanese in real time and displays 
 
 ```bash
 git clone https://github.com/davidim22/stt_summercamp_2026.git
-cd church-translation
+cd stt_summercamp_2026
 ```
 
 ### 2. Install packages
