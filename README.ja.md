@@ -35,7 +35,7 @@
 ### 1. リポジトリをクローン
 
 ```bash
-git clone https://github.com/YOUR_USERNAME/church-translation.git
+git clone https://github.com/davidim22/stt_summercamp_2026.git
 cd church-translation
 ```
 

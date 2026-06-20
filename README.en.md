@@ -35,7 +35,7 @@ A system that translates Korean sermons into Japanese in real time and displays 
 ### 1. Clone the repository
 
 ```bash
-git clone https://github.com/YOUR_USERNAME/church-translation.git
+git clone https://github.com/davidim22/stt_summercamp_2026.git
 cd church-translation
 ```
 
